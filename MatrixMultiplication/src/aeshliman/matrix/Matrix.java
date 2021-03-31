@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Matrix
 {
@@ -19,6 +20,7 @@ public class Matrix
 	
 	private int[][] a;
 	private int[][] b;
+	private int[][] c;
 	
 	// Constructors
 	{
@@ -37,12 +39,34 @@ public class Matrix
 	{
 		loadConfig(path);
 		generateMatrices();
+		run();
 	}
 	
 	// Getters and Setters
 	
 	
 	// Operations
+	public void run()
+	{
+		System.out.println(this);
+		
+		// Initializes producers and consumers as threads and starts them
+		SharedBuffer buffer = new SharedBuffer(maxBuffSize);
+		Thread t1 = new Thread(new Producer(buffer, a, b, c, splitSize, maxProducerSleepTime));
+		Thread t2 = new Thread(new Consumer(buffer, maxConsumerSleepTime));
+		t1.start();
+		t2.start();
+		
+		// Attempts to join producers and consumers
+		try { t1.join(); }
+		catch(InterruptedException e) {  }
+		buffer.setFinished(true);
+		try { t2.join(); }
+		catch(InterruptedException e) {  }
+		
+		System.out.println("Matrix C\n" + matrixToString(c));
+	}
+	
 	private void loadConfig(String path) // Parses a config file and updates variables as appropriate
 	{
 		try(Scanner scan = new Scanner(new File(path));)
@@ -50,8 +74,8 @@ public class Matrix
 			while(scan.hasNext())
 			{
 				// splits each line on the delimiter =
-				String[] line = scan.nextLine().split("\s*=\s*");
-				if(line.length!=2) continue; 
+				String[] line = scan.nextLine().split("\\s*=\\s*");
+				if(line.length!=2) continue;
 				switch(line[0]) // Set value of variables associated with key
 				{
 				case "M":
@@ -92,17 +116,12 @@ public class Matrix
 		// Sets size of matrices A and B
 		a = new int[m][n];
 		b = new int[n][p];
+		c = new int[m][p];
 		
 		// Randomly generates values between 0 and 9 inclusively for each index in matrices A and B
 		Random ran = new Random();
 		for(int i=0; i<m; i++) { for(int j=0; j<n; j++) { a[i][j] = ran.nextInt(10); } }
 		for(int i=0; i<n; i++) { for(int j=0; j<p; j++) { b[i][j] = ran.nextInt(10); } }
-	}
-	
-	public void tmp()
-	{
-		WorkItem w = new WorkItem(a, b, 0, 2, 2, 5);
-		System.out.println("\n" + w);
 	}
 	
 	// toString

@@ -31,8 +31,28 @@ public class WorkItem
 		for(int i=0; i<b.length; i++) for(int j=lowB; j<=highB; j++) subB[i][j-lowB] = b[i][j];
 	}
 	
-	// Operations
+	// Getters and Setters
+	public int[][] getSubA() { return this.subA; }
+	public int[][] getSubB() { return this.subB; }
+	public int[][] getSubC() { return this.subC; }
 	
+	// Operations
+	public boolean isDone() { return this.done; }
+	
+	public void solve() // For testing purposes
+	{
+		for(int i=0; i<subA.length; i++)
+		{
+			for(int j=0; j<subB[0].length; j++)
+			{
+				for(int k=0; k<subB.length; k++)
+				{
+					subC[i][j] += subA[i][k] * subB[k][j];
+				}
+			}
+		}
+		done = true;
+	}
 	
 	// toString
 	public String toString()
