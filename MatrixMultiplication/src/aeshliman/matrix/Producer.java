@@ -68,7 +68,6 @@ public class Producer implements Runnable
 				
 			}
 		}
-		
 		// Wait until all work items have been consumed
 		for(WorkItem[] out : workItems)
 		{
@@ -100,8 +99,5 @@ public class Producer implements Runnable
 				offset = subC.length;
 			}
 		}
-		
-		
-		
 	}
 }

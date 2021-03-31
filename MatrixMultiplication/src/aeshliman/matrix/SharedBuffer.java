@@ -1,7 +1,5 @@
 package aeshliman.matrix;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 public class SharedBuffer
 {
 	// Instance Variables
@@ -13,7 +11,7 @@ public class SharedBuffer
 	private int out;
 	private int countFull;
 	private int countEmpty;
-	private AtomicBoolean finished;
+	private boolean finished;
 	
 	// Constructors
 	{
@@ -22,7 +20,7 @@ public class SharedBuffer
 		out = 0;
 		countFull = 0;
 		countEmpty = 0;
-		finished = new AtomicBoolean(false);
+		finished = false;
 	}
 	
 	public SharedBuffer(int maxBuffSize)
@@ -32,14 +30,14 @@ public class SharedBuffer
 	}
 	
 	// Getters and Setters
-	public void setFinished(boolean finished) { this.finished.set(finished); }
+	public void setFinished(boolean finished) { this.finished = finished; }
 	
 	// Operations
 	public synchronized WorkItem get()
 	{
 		while(count==0)
 		{
-			if(finished.get()) return null;
+			if(finished) return null;
 			try { wait(MAXWAITTIME); }
 			catch(InterruptedException e) {  }
 		}
@@ -54,7 +52,7 @@ public class SharedBuffer
 	{
 		while(count==maxBuffSize)
 		{
-			try { wait(MAXWAITTIME); }
+			try { wait(); }
 			catch(InterruptedException e) {  }
 		}
 		buffer[in] = item;

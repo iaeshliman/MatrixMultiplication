@@ -1,7 +1,6 @@
 package aeshliman.matrix;
 
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Consumer implements Runnable
 {
