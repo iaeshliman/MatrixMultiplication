@@ -117,8 +117,8 @@ public class Matrix
 		bufferFullCount = buffer.getCountFull();
 		bufferEmptyCount = buffer.getCountEmpty();
 		
-		System.out.println("---------------------------------------------\nMatrix C\n" + matrixToString(c));
-		System.out.println(solve() + "\n---------------------------------------------");
+		System.out.println("---------------------------------------------\nFinal Result of Matrix C\n" + matrixToString(c));
+		System.out.println("Verified Matrix C Multiplication\n" + solve() + "\n---------------------------------------------");
 		System.out.println(statisticsToString());
 	}
 	
