@@ -73,9 +73,10 @@ public class Matrix
 		
 		// Initializes producers and consumers as threads and starts them
 		AtomicBoolean cont = new AtomicBoolean(true);
-		SharedBuffer buffer = new SharedBuffer(maxBuffSize, cont);
+		SharedBuffer buffer = new SharedBuffer(maxBuffSize);
 		for(int i=0; i<numProducer; i++)
 		{
+			// Creates a producer object and thread adding both to associated lists
 			Producer producer = new Producer(buffer, a, b, c, splitSize, maxProducerSleepTime);
 			producers.add(producer);
 			Thread thread = new Thread(producer);
@@ -83,12 +84,15 @@ public class Matrix
 		}
 		for(int i=0; i<numConsumer; i++)
 		{
+			// Creates a consumer object and thread adding both to associated lists
 			Consumer consumer = new Consumer(buffer, maxConsumerSleepTime, cont);
 			consumers.add(consumer);
 			Thread thread = new Thread(consumer);
 			consumerThreads.add(thread);
 		}
 		long startTime = System.currentTimeMillis();
+		
+		// Starts all threads
 		for(Thread thread : producerThreads) thread.start();
 		for(Thread thread : consumerThreads) thread.start();
 		
@@ -98,7 +102,7 @@ public class Matrix
 			try { producerThreads.get(i).join(); }
 			catch(InterruptedException e) {  }
 		}
-		cont.set(false);
+		cont.set(false); // Updates the continue flag
 		for(int i=0; i<numConsumer; i++)
 		{
 			consumerThreads.get(i).interrupt();
@@ -117,6 +121,7 @@ public class Matrix
 		bufferFullCount = buffer.getCountFull();
 		bufferEmptyCount = buffer.getCountEmpty();
 		
+		// Prints results to console
 		System.out.println("---------------------------------------------\nFinal Result of Matrix C\n" + matrixToString(c));
 		System.out.println("Verified Matrix C Multiplication\n" + solve() + "\n---------------------------------------------");
 		System.out.println(statisticsToString());
@@ -179,7 +184,7 @@ public class Matrix
 		for(int i=0; i<n; i++) { for(int j=0; j<p; j++) { b[i][j] = ran.nextInt(10); } }
 	}
 	
-	private String solve()
+	private String solve() // Loops through the matrices A and B to solve
 	{
 		int[][] matrix = new int[a.length][b[0].length];
 		for(int i=0; i<a.length; i++)

@@ -1,12 +1,10 @@
 package aeshliman.matrix;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SharedBuffer
 {
 	// Instance Variables
-	private final int MAXWAITTIME = 1000;
 	private WorkItem[] buffer;
 	private int maxBuffSize;
 	private AtomicInteger count;
@@ -14,7 +12,6 @@ public class SharedBuffer
 	private int out;
 	private int countFull;
 	private int countEmpty;
-	private AtomicBoolean cont;
 	
 	// Constructors
 	{
@@ -25,11 +22,10 @@ public class SharedBuffer
 		countEmpty = 0;
 	}
 	
-	public SharedBuffer(int maxBuffSize, AtomicBoolean cont)
+	public SharedBuffer(int maxBuffSize)
 	{
 		this.maxBuffSize = maxBuffSize;
 		this.buffer = new WorkItem[maxBuffSize];
-		this.cont = cont;
 	}
 	
 	// Getters and Setters
@@ -39,12 +35,14 @@ public class SharedBuffer
 	// Operations
 	public synchronized WorkItem get()
 	{
-		while(count.get()==0)
+		while(count.get()==0) // Wait until notified that a item is available
 		{
 			System.out.println("Buffer is empty - " + Thread.currentThread().getName() + " is waiting");
 			try { wait(); }
-			catch(InterruptedException e) { if(!cont.get()) return null; }
+			catch(InterruptedException e) { return null; }
 		}
+
+		// Increments relevant statistics and returns next item from buffer
 		int tmp = out;
 		out = ++out%maxBuffSize;
 		if(count.decrementAndGet()==0) countEmpty++;
@@ -54,12 +52,14 @@ public class SharedBuffer
 	
 	public synchronized void put(WorkItem item)
 	{
-		while(count.get()==maxBuffSize)
+		while(count.get()==maxBuffSize) // Wait until notified that space for an item is available
 		{
 			System.out.println("Buffer is full - Thread " + Thread.currentThread().getId() + " is waiting");
 			try { wait(); }
-			catch(InterruptedException e) {  }
+			catch(InterruptedException e) { return; }
 		}
+		
+		// Increments relevant statistics and puts item into buffer
 		buffer[in] = item;
 		in = ++in%maxBuffSize;
 		if(count.incrementAndGet()==maxBuffSize) countFull++;

@@ -39,7 +39,7 @@ public class WorkItem
 	// Operations
 	public boolean isDone() { return this.done; }
 	
-	public void solve() // For testing purposes
+	public void solve() // Loops through the matrices A and B to solve
 	{
 		for(int i=0; i<subA.length; i++)
 		{
