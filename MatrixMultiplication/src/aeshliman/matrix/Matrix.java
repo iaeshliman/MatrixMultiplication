@@ -2,6 +2,7 @@ package aeshliman.matrix;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -14,9 +15,16 @@ public class Matrix
 	private int p;
 	private int maxBuffSize;
 	private int splitSize;
+	private int numProducer;
 	private int numConsumer;
 	private int maxProducerSleepTime;
 	private int maxConsumerSleepTime;
+	private int totalSimulationTime;
+	private double averageSleepTime;
+	private int[] producerItemCount;
+	private int[] consumerItemCount;
+	private int bufferFullCount;
+	private int bufferEmptyCount;
 	
 	private int[][] a;
 	private int[][] b;
@@ -30,9 +38,16 @@ public class Matrix
 		p = 10;
 		maxBuffSize = 5;
 		splitSize = 3;
+		numProducer = 1;
 		numConsumer = 2;
 		maxProducerSleepTime = 20;
 		maxConsumerSleepTime = 80;
+		totalSimulationTime = 0;
+		averageSleepTime = 0;
+		producerItemCount = new int[numProducer];
+		consumerItemCount = new int[numConsumer];
+		bufferFullCount = 0;
+		bufferEmptyCount = 0;
 	}
 	
 	public Matrix(String path)
@@ -50,21 +65,61 @@ public class Matrix
 	{
 		System.out.println(this);
 		
+		// Stores all producers, consumers, and threads in an arraylist
+		ArrayList<Producer> producers = new ArrayList<Producer>(numProducer);
+		ArrayList<Consumer> consumers = new ArrayList<Consumer>(numConsumer);
+		ArrayList<Thread> producerThreads = new ArrayList<Thread>(numProducer);
+		ArrayList<Thread> consumerThreads = new ArrayList<Thread>(numConsumer);
+		
 		// Initializes producers and consumers as threads and starts them
-		SharedBuffer buffer = new SharedBuffer(maxBuffSize);
-		Thread t1 = new Thread(new Producer(buffer, a, b, c, splitSize, maxProducerSleepTime));
-		Thread t2 = new Thread(new Consumer(buffer, maxConsumerSleepTime));
-		t1.start();
-		t2.start();
+		AtomicBoolean cont = new AtomicBoolean(true);
+		SharedBuffer buffer = new SharedBuffer(maxBuffSize, cont);
+		for(int i=0; i<numProducer; i++)
+		{
+			Producer producer = new Producer(buffer, a, b, c, splitSize, maxProducerSleepTime);
+			producers.add(producer);
+			Thread thread = new Thread(producer);
+			producerThreads.add(thread);
+		}
+		for(int i=0; i<numConsumer; i++)
+		{
+			Consumer consumer = new Consumer(buffer, maxConsumerSleepTime, cont);
+			consumers.add(consumer);
+			Thread thread = new Thread(consumer);
+			consumerThreads.add(thread);
+		}
+		long startTime = System.currentTimeMillis();
+		for(Thread thread : producerThreads) thread.start();
+		for(Thread thread : consumerThreads) thread.start();
 		
 		// Attempts to join producers and consumers
-		try { t1.join(); }
-		catch(InterruptedException e) {  }
-		buffer.setFinished(true);
-		try { t2.join(); }
-		catch(InterruptedException e) {  }
+		for(int i=0; i<numProducer; i++)
+		{
+			try { producerThreads.get(i).join(); }
+			catch(InterruptedException e) {  }
+		}
+		cont.set(false);
+		for(int i=0; i<numConsumer; i++)
+		{
+			consumerThreads.get(i).interrupt();
+			try { consumerThreads.get(i).join(); }
+			catch(InterruptedException e) {  }
+		}
+		long endTime = System.currentTimeMillis();
 		
-		System.out.println("Matrix C\n" + matrixToString(c));
+		// Calculates simulations statistics
+		totalSimulationTime = (int)(endTime-startTime);
+		for(Producer producer : producers) averageSleepTime += producer.getTotalSleepTime();
+		for(Consumer consumer : consumers) averageSleepTime += consumer.getTotalSleepTime();
+		averageSleepTime /= (double) numProducer + numConsumer;
+		for(int i=0; i<numProducer; i++) producerItemCount[i] = producers.get(i).getProducedWorkItems();
+		for(int i=0; i<numConsumer; i++) consumerItemCount[i] = consumers.get(i).getConsumedWorkItems();
+		bufferFullCount = buffer.getCountFull();
+		bufferEmptyCount = buffer.getCountEmpty();
+		
+		System.out.println("---------------------------------------------\nMatrix C\n" + matrixToString(c));
+		System.out.println(solve() + "\n---------------------------------------------");
+		System.out.println(statisticsToString());
 	}
 	
 	private void loadConfig(String path) // Parses a config file and updates variables as appropriate
@@ -124,6 +179,22 @@ public class Matrix
 		for(int i=0; i<n; i++) { for(int j=0; j<p; j++) { b[i][j] = ran.nextInt(10); } }
 	}
 	
+	private String solve()
+	{
+		int[][] matrix = new int[a.length][b[0].length];
+		for(int i=0; i<a.length; i++)
+		{
+			for(int j=0; j<b[0].length; j++)
+			{
+				for(int k=0; k<b.length; k++)
+				{
+					matrix[i][j] += a[i][k] * b[k][j];
+				}
+			}
+		}
+		return matrixToString(matrix);
+	}
+	
 	// toString
 	public String toString()
 	{
@@ -131,6 +202,7 @@ public class Matrix
 				"   MaxProducerSleepTime: " + maxProducerSleepTime + "   MaxConsumerSleepTime: " + maxConsumerSleepTime;
 		toString += "\nM: " + m + "   N: " + n + "   P: " + p + "\n";
 		toString += "Matrix A\n" + matrixToString(a) + "\nMatrix B\n" + matrixToString(b);
+		toString += "\n---------------------------------------------";
 		return toString;
 	}
 	
@@ -139,9 +211,44 @@ public class Matrix
 		String toString = "";
 		for(int i=0; i<matrix.length; i++)
 		{
-			for(int j=0; j<matrix[i].length; j++) { toString += Integer.toString(matrix[i][j]) + ", "; }
+			for(int j=0; j<matrix[i].length; j++) { toString += String.format("%-4d ", matrix[i][j]); } // Integer.toString(matrix[i][j]) + ", "; 
 			toString = toString.substring(0, toString.length()-2) + "\n";
 		}
 		return toString.trim();
+	}
+	
+	private String statisticsToString() // Returns a string representation of the simulations statistics
+	{
+		String toString = "Producer/Consumer Simulation Results\n";
+		toString += String.format("Simluation Time: %32s%dms\n", "", totalSimulationTime);
+		toString += String.format("Average Thread Sleep Time: %22s%.2fms\n", "", averageSleepTime);
+		toString += String.format("Number of Producer Threads: %22d\n", numProducer);
+		toString += String.format("Number of Consumer Threads: %22d\n", numConsumer);
+		toString += String.format("Size of Buffer: %34d\n", maxBuffSize);
+		
+		String produced = "";
+		int totalProduced = 0;
+		for(int i=0; i<numProducer; i++)
+		{
+			produced += String.format("   Producer %d: %"+ (35-(i/10)) + "d\n", i, producerItemCount[i]);
+			totalProduced += producerItemCount[i];
+		}
+		toString += String.format("Total Number of Items Produced: %18d\n", totalProduced);
+		toString += produced;
+		
+		String consumed = "";
+		int totalCosnumed = 0;
+		for(int i=0; i<numConsumer; i++)
+		{
+			consumed += String.format("   Consumer %d: %"+ (35-(i/10)) + "d\n", i, consumerItemCount[i]);
+			totalCosnumed += consumerItemCount[i];
+		}
+		toString += String.format("Total Number of Items Consumed: %18d\n", totalCosnumed);
+		toString += consumed;
+		
+		toString += String.format("Number of Time Buffer Was Full: %18d\n", bufferFullCount);
+		toString += String.format("Number of Time Buffer Was Empty: %17d\n", bufferEmptyCount);
+		
+		return toString;
 	}
 }

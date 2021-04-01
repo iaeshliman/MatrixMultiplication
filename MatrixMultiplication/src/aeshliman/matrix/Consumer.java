@@ -1,6 +1,7 @@
 package aeshliman.matrix;
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Consumer implements Runnable
 {
@@ -9,6 +10,7 @@ public class Consumer implements Runnable
 	private int maxConsumerSleepTime;
 	private int consumedWorkItems;
 	private int totalSleepTime;
+	private AtomicBoolean cont;
 	
 	// Constructors
 	{
@@ -16,20 +18,25 @@ public class Consumer implements Runnable
 		totalSleepTime = 0;
 	}
 	
-	public Consumer(SharedBuffer buffer, int maxConsumerSleepTime)
+	public Consumer(SharedBuffer buffer, int maxConsumerSleepTime, AtomicBoolean cont)
 	{
 		this.buffer = buffer;
-		this.maxConsumerSleepTime = maxConsumerSleepTime;	
+		this.maxConsumerSleepTime = maxConsumerSleepTime;
+		this.cont = cont;
 	}
+	
+	// Getters and Setters
+	public int getConsumedWorkItems() { return this.consumedWorkItems; }
+	public int getTotalSleepTime() { return this.totalSleepTime; }
 	
 	// Operations
 	public void run()
 	{
 		Random ran = new Random();
-		while(true)
+		while(true&&cont.get())
 		{
 			WorkItem item = buffer.get();
-			if(item == null) break;
+			if(cont.get() == false) break;
 			consumedWorkItems++;
 			item.solve();
 			String result = "Submatrix A multiplied by Submatrix B equals Submatrix C\nSubmatrix A\n";
@@ -40,7 +47,7 @@ public class Consumer implements Runnable
 			totalSleepTime += time;
 			synchronized(this)
 			{
-				try { wait(time); }
+				try { Thread.sleep(time); }
 				catch(InterruptedException e) {  }
 			}
 		}
@@ -52,11 +59,9 @@ public class Consumer implements Runnable
 		String toString = "";
 		for(int i=0; i<matrix.length; i++)
 		{
-			for(int j=0; j<matrix[i].length; j++) { toString += Integer.toString(matrix[i][j]) + ", "; }
+			for(int j=0; j<matrix[i].length; j++) { toString += String.format("%-4d ", matrix[i][j]); } // Integer.toString(matrix[i][j]) + ", "; 
 			toString = toString.substring(0, toString.length()-2) + "\n";
 		}
 		return toString.trim();
-	}
-	
-	
+	}	
 }

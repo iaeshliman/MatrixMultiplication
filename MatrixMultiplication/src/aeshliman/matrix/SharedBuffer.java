@@ -1,63 +1,68 @@
 package aeshliman.matrix;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class SharedBuffer
 {
 	// Instance Variables
 	private final int MAXWAITTIME = 1000;
 	private WorkItem[] buffer;
 	private int maxBuffSize;
-	private int count;
+	private AtomicInteger count;
 	private int in;
 	private int out;
 	private int countFull;
 	private int countEmpty;
-	private boolean finished;
+	private AtomicBoolean cont;
 	
 	// Constructors
 	{
-		count = 0;
+		count = new AtomicInteger(0);
 		in = 0;
 		out = 0;
 		countFull = 0;
 		countEmpty = 0;
-		finished = false;
 	}
 	
-	public SharedBuffer(int maxBuffSize)
+	public SharedBuffer(int maxBuffSize, AtomicBoolean cont)
 	{
 		this.maxBuffSize = maxBuffSize;
 		this.buffer = new WorkItem[maxBuffSize];
+		this.cont = cont;
 	}
 	
 	// Getters and Setters
-	public void setFinished(boolean finished) { this.finished = finished; }
+	public int getCountFull() { return this.countFull; }
+	public int getCountEmpty() { return this.countEmpty; }
 	
 	// Operations
 	public synchronized WorkItem get()
 	{
-		while(count==0)
+		while(count.get()==0)
 		{
-			if(finished) return null;
-			try { wait(MAXWAITTIME); }
-			catch(InterruptedException e) {  }
+			System.out.println("Buffer is empty - " + Thread.currentThread().getName() + " is waiting");
+			try { wait(); }
+			catch(InterruptedException e) { if(!cont.get()) return null; }
 		}
 		int tmp = out;
 		out = ++out%maxBuffSize;
-		if(--count==0) countEmpty++;
+		if(count.decrementAndGet()==0) countEmpty++;
 		notifyAll();
 		return buffer[tmp];
 	}
 	
 	public synchronized void put(WorkItem item)
 	{
-		while(count==maxBuffSize)
+		while(count.get()==maxBuffSize)
 		{
+			System.out.println("Buffer is full - Thread " + Thread.currentThread().getId() + " is waiting");
 			try { wait(); }
 			catch(InterruptedException e) {  }
 		}
 		buffer[in] = item;
 		in = ++in%maxBuffSize;
-		if(++count==maxBuffSize) countFull++;
+		if(count.incrementAndGet()==maxBuffSize) countFull++;
 		notifyAll();
 	}
 }

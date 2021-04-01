@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class Producer implements Runnable
 {
-	// Insatnce Variables
+	// Instance Variables
 	private SharedBuffer buffer;
 	private int[][] a;
 	private int[][] b;
@@ -31,6 +31,10 @@ public class Producer implements Runnable
 		this.splitSize = splitSize;
 		this.maxProducerSleepTime = maxProducerSleepTime;
 	}
+	
+	// Getters and Setters
+	public int getProducedWorkItems() { return this.producedWorkItems; }
+	public int getTotalSleepTime() { return this.totalSleepTime; }
 	
 	// Operations
 	public void run()
@@ -62,7 +66,7 @@ public class Producer implements Runnable
 				totalSleepTime += time;
 				synchronized(this)
 				{
-					try { wait(time); }
+					try { Thread.sleep(time); }
 					catch(InterruptedException e) { e.printStackTrace(); }
 				}
 				
@@ -75,7 +79,7 @@ public class Producer implements Runnable
 			{
 				while(!in.isDone())
 				{
-					try { Thread.sleep(1000); }
+					try { Thread.sleep(250); }
 					catch(InterruptedException e) { e.printStackTrace(); }
 				}
 			}
