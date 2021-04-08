@@ -86,9 +86,9 @@ public class Producer implements Runnable
 		}
 		
 		// Copy submatrices C into matrix C
+		int offset = splitSize;
 		for(int i=0; i<workItems.length; i++)
 		{
-			int offset = splitSize;
 			for(int j=0; j<workItems[i].length; j++)
 			{
 				int[][] subC = workItems[i][j].getSubC();
@@ -100,7 +100,6 @@ public class Producer implements Runnable
 						c[i*offset+x][j*offset+y] = subC[x][y];
 					}
 				}
-				offset = subC.length;
 			}
 		}
 	}
