@@ -1,6 +1,6 @@
-M = 9
+M = 8
 N = 4
-P = 3
+P = 6
 MaxBuffSize = 3
 SplitSize = 2
 NumConsumer = 2

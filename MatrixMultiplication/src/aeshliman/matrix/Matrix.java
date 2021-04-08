@@ -29,6 +29,7 @@ public class Matrix
 	private int[][] a;
 	private int[][] b;
 	private int[][] c;
+	private int[][] d;
 	
 	// Constructors
 	{
@@ -120,10 +121,12 @@ public class Matrix
 		for(int i=0; i<numConsumer; i++) consumerItemCount[i] = consumers.get(i).getConsumedWorkItems();
 		bufferFullCount = buffer.getCountFull();
 		bufferEmptyCount = buffer.getCountEmpty();
+		solve();
 		
 		// Prints results to console
 		System.out.println("---------------------------------------------\nFinal Result of Matrix C\n" + matrixToString(c));
-		System.out.println("Verified Matrix C Multiplication\n" + solve() + "\n---------------------------------------------");
+		System.out.println("Verified Matrix C Multiplication\n" + matrixToString(d));
+		System.out.println("Verification Test Passed? " + verify(c,d) + "\n---------------------------------------------");
 		System.out.println(statisticsToString());
 	}
 	
@@ -184,20 +187,32 @@ public class Matrix
 		for(int i=0; i<n; i++) { for(int j=0; j<p; j++) { b[i][j] = ran.nextInt(10); } }
 	}
 	
-	private String solve() // Loops through the matrices A and B to solve
+	private void solve() // Loops through the matrices A and B to solve
 	{
-		int[][] matrix = new int[a.length][b[0].length];
+		d = new int[a.length][b[0].length];
 		for(int i=0; i<a.length; i++)
 		{
 			for(int j=0; j<b[0].length; j++)
 			{
 				for(int k=0; k<b.length; k++)
 				{
-					matrix[i][j] += a[i][k] * b[k][j];
+					d[i][j] += a[i][k] * b[k][j];
 				}
 			}
 		}
-		return matrixToString(matrix);
+	}
+	
+	private boolean verify(int[][] matrixA, int[][] matrixB)
+	{
+		if(matrixA.length!=matrixB.length||matrixA[0].length!=matrixB[0].length) return false;
+		for(int i=0; i<matrixA.length; i++)
+		{
+			for(int j=0; j<matrixA[i].length; j++)
+			{
+				if(matrixA[i][j]!=matrixB[i][j]) return false;
+			}
+		}
+		return true;
 	}
 	
 	// toString
