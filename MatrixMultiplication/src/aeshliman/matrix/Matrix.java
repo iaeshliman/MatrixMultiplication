@@ -202,7 +202,7 @@ public class Matrix
 		}
 	}
 	
-	private boolean verify(int[][] matrixA, int[][] matrixB)
+	private boolean verify(int[][] matrixA, int[][] matrixB) // Verifies if two matrices are identical
 	{
 		if(matrixA.length!=matrixB.length||matrixA[0].length!=matrixB[0].length) return false;
 		for(int i=0; i<matrixA.length; i++)
