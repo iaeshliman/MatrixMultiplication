@@ -55,7 +55,6 @@ public class Matrix
 	{
 		loadConfig(path);
 		generateMatrices();
-		run();
 	}
 	
 	// Getters and Setters
